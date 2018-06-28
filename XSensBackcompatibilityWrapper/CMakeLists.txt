@@ -4,6 +4,12 @@
 
 find_package(YARP REQUIRED)
 
+# ======
+# THRIFT
+# ======
+
+add_subdirectory(msgs)
+
 # =======
 # WRAPPER
 # =======
