@@ -62,4 +62,4 @@ add_subdirectory(msgs)
 add_subdirectory(devices)
 add_subdirectory(wrappers)
 
-add_subdirectory(XSensBackcompatibilityWrapper)
+add_subdirectory(WearDataToXSensFrameWrapper)
