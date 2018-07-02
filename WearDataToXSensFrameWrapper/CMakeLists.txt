@@ -17,7 +17,8 @@ add_subdirectory(msgs)
 yarp_prepare_plugin(WearDataToXSensFrameWrapper
     TYPE yarp::dev::WearDataToXSensFrameWrapper
     INCLUDE include/WearDataToXSensFrameWrapper.h
-    CATEGORY device)
+    CATEGORY device
+    DEFAULT ON)
 
 yarp_add_plugin(WearDataToXSensFrameWrapper
     include/WearDataToXSensFrameWrapper.h
