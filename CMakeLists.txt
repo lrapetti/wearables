@@ -35,8 +35,6 @@ if(UNIX AND NOT APPLE)
     endif()
 endif()
 
-add_subdirectory(IWear)
-
 if(WIN32)
   option(XSENS_MVN_USE_SDK "Build the driver and the wrapper for the real MVN system using the MVN SDK" ON)
   if(XSENS_MVN_USE_SDK)
@@ -61,5 +59,3 @@ yarp_configure_plugins_installation(wearable)
 add_subdirectory(msgs)
 add_subdirectory(devices)
 add_subdirectory(wrappers)
-
-add_subdirectory(WearDataToXSensFrameWrapper)
