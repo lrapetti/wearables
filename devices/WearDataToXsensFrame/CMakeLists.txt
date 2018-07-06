@@ -25,7 +25,7 @@ yarp_add_plugin(WearDataToXsensFrameDevice
     src/WearDataToXsensFrameDevice.cpp)
 
 target_link_libraries(WearDataToXsensFrameDevice
-    YARP::YARP_dev)
+    XSensFrame WearData YARP::YARP_dev)
 
 target_include_directories(WearDataToXsensFrameDevice PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
