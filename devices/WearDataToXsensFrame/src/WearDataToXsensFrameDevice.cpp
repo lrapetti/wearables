@@ -174,30 +174,26 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
         // TODO: check for each single field the possibility of a null vector.
 
         // Quaternion
-        xsSegmentData.orientation.w = wds.data.orientation.w;
-        xsSegmentData.orientation.imaginary.x = wds.data.orientation.imaginary.x;
-        xsSegmentData.orientation.imaginary.y = wds.data.orientation.imaginary.y;
-        xsSegmentData.orientation.imaginary.z = wds.data.orientation.imaginary.z;
+        xsSegmentData.orientation = {wds.data.orientation.w,
+                                     {wds.data.orientation.imaginary.x,
+                                      wds.data.orientation.imaginary.y,
+                                      wds.data.orientation.imaginary.z}};
         // Position
-        xsSegmentData.position.x = wds.data.position.x;
-        xsSegmentData.position.y = wds.data.position.y;
-        xsSegmentData.position.z = wds.data.position.z;
+        xsSegmentData.position = {wds.data.position.x, wds.data.position.y, wds.data.position.z};
         // Velocity
-        xsSegmentData.velocity.x = wds.data.linearVelocity.x;
-        xsSegmentData.velocity.y = wds.data.linearVelocity.y;
-        xsSegmentData.velocity.z = wds.data.linearVelocity.z;
+        xsSegmentData.velocity = {
+            wds.data.linearVelocity.x, wds.data.linearVelocity.y, wds.data.linearVelocity.z};
         // Acceleration
-        xsSegmentData.acceleration.x = wds.data.linearAcceleration.x;
-        xsSegmentData.acceleration.y = wds.data.linearAcceleration.y;
-        xsSegmentData.acceleration.z = wds.data.linearAcceleration.z;
-        // Angular Velocity
-        xsSegmentData.angularVelocity.x = wds.data.angularVelocity.x;
-        xsSegmentData.angularVelocity.y = wds.data.angularVelocity.y;
-        xsSegmentData.angularVelocity.z = wds.data.angularVelocity.z;
+        xsSegmentData.acceleration = {wds.data.linearAcceleration.x,
+                                      wds.data.linearAcceleration.y,
+                                      wds.data.linearAcceleration.z};
+        // Angular Velocityn
+        xsSegmentData.angularVelocity = {
+            wds.data.angularVelocity.x, wds.data.angularVelocity.y, wds.data.angularVelocity.z};
         // Angular Acceleration
-        xsSegmentData.angularAcceleration.x = wds.data.angularAcceleration.x;
-        xsSegmentData.angularAcceleration.y = wds.data.angularAcceleration.y;
-        xsSegmentData.angularAcceleration.z = wds.data.angularAcceleration.z;
+        xsSegmentData.angularAcceleration = {wds.data.angularAcceleration.x,
+                                             wds.data.angularAcceleration.y,
+                                             wds.data.angularAcceleration.z};
 
         xsSegmentFrame.segmentsData.push_back(xsSegmentData);
     }
