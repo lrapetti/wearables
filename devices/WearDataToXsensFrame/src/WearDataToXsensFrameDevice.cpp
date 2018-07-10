@@ -197,6 +197,81 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
 
         xsSegmentFrame.segmentsData.push_back(xsSegmentData);
     }
+
+    // Sensors Quantities
+    // ===================
+    // From ~WearData.thrift~
+    // --------------------------------------- //
+    //    struct FreeBodyAccelerationSensor {  //
+    //       1: SensorInfo info,               //
+    //       2: VectorXYZ data                 //
+    //    }                                    //
+    // ---------
+    //    struct Magnetometer {                //
+    //      1: SensorInfo info,                //
+    //      2: VectorXYZ data                  //
+    //    }                                    //
+    // ---------
+    //    struct OrientationSensor {           //
+    //      1: SensorInfo info,                //
+    //      2: QuaternionWXYZ data             //
+    //    }                                    //
+    // --------------------------------------- //
+
+    // to ~XsensFrame.thrift~
+    // --------------------------------------- //
+    //    struct XsensSensorData {             //
+    //        1:  Vector3 acceleration;        //
+    //        2:  Vector3 angularVelocity;     //
+    //        3:  Vector3 magnetometer;        //
+    //        4:  Quaternion orientation;      //
+    //    }                                    //
+    // --------------------------------------- //
+    // Note that the angularVelocity is not provided anymore as a sensor. We decided to provide this
+    // field as a 0.0 field.
+
+    xsens::XsensSensorsFrame xsSensorFrame;
+    std::vector<wearable::msg::FreeBodyAccelerationSensor> inputFreeBodyAccQty;
+    std::vector<wearable::msg::Magnetometer> inputMagnetometerQty;
+    std::vector<wearable::msg::OrientationSensor> inputOrientationSensQty;
+
+    //    unsigned long size_FreeBodyAccelerometer = inData.freeBodyAccelerationSensors.size();
+    //    unsigned long size_Magnetometer = inData.magnetometers.size();
+    //    unsigned long size_OrientationSensor = inData.orientationSensors.size();
+
+    xsSensorFrame.sensorsData.reserve(inData.freeBodyAccelerationSensors.size());
+    xsSensorFrame.sensorsData.reserve(inData.magnetometers.size());
+    xsSensorFrame.sensorsData.reserve(inData.orientationSensors.size());
+
+    // TODO : check if vectors are empty
+
+    // Assumption:
+    // freeBodyAccelerationSensors.size() == inData.magnetometers.size() ==
+    // inData.orientationSensors.size()
+    for (unsigned long i = 0; i < inData.freeBodyAccelerationSensors.size(); ++i) {
+        xsens::XsensSensorData xsSensorData;
+
+        // TODO: check for each single field the possibility of a null vector.
+
+        // Acceleration
+        xsSensorData.acceleration = {inData.freeBodyAccelerationSensors.at(i).data.x,
+                                     inData.freeBodyAccelerationSensors.at(i).data.y,
+                                     inData.freeBodyAccelerationSensors.at(i).data.z};
+        // Magnetometer
+        xsSensorData.magnetometer = {inData.magnetometers.at(i).data.x,
+                                     inData.magnetometers.at(i).data.y,
+                                     inData.magnetometers.at(i).data.z};
+        // Orientation
+        xsSensorData.orientation = {inData.orientationSensors.at(i).data.w,
+                                    {inData.orientationSensors.at(i).data.imaginary.x,
+                                     inData.orientationSensors.at(i).data.imaginary.y,
+                                     inData.orientationSensors.at(i).data.imaginary.z}};
+        // Angular Velocity
+        // TODO: put angVel equal to 0.0!
+
+        xsSensorFrame.sensorsData.push_back(xsSensorData);
+    }
 }
-// TODO: handle the status! From the ~WearData.thrift~, the STATUS exists per each sensor, in the
-// ~XsensFrame.thrift~ there is a STATUS for the whole Xsens suit.  Define a proper mapping.
+
+// TODO: handle the status! From the ~WearData.thrift~, the STATUS exists per each sensor, in
+// the ~XsensFrame.thrift~ there is a STATUS for the whole Xsens suit.  Define a proper mapping.
