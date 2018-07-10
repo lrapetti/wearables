@@ -141,7 +141,7 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
 
     // Check if the VirtualLinkKinSensor is empty. If yes, replicate the same structure of the
     // inData but with all the values equal to 0.0.
-    std::vector<wearable::msg::VirtualLinkKinSensor> input;
+    std::vector<wearable::msg::VirtualLinkKinSensor> inputLinkQty;
 
     if (inData.virtualLinkKinSensors.empty()) {
         // create a dummy wds element
@@ -161,14 +161,14 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
         std::vector<wearable::msg::VirtualLinkKinSensor> dummy_wds;
         dummy_wds.resize(m_linkVectorSize, dummyElement_wds);
 
-        input = std::move(dummy_wds);
+        inputLinkQty = std::move(dummy_wds);
     }
     else {
-        input = std::move(inData.virtualLinkKinSensors);
+        inputLinkQty = std::move(inData.virtualLinkKinSensors);
     }
 
-    xsSegmentFrame.segmentsData.reserve(input.size());
-    for (const auto& wds : input) {
+    xsSegmentFrame.segmentsData.reserve(inputLinkQty.size());
+    for (const auto& wds : inputLinkQty) {
         xsens::XsensSegmentData xsSegmentData;
 
         // TODO: check for each single field the possibility of a null vector.
