@@ -145,6 +145,7 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
 
     if (inData.virtualLinkKinSensors.empty()) {
         // create a dummy wds element
+        // --------------------------
         wearable::msg::VirtualLinkKinSensor dummyElement_wds{
             {"", // initialize name (from info field)
              wearable::msg::SensorType::VIRTUAL_LINK_KIN_SENSOR, // initialize type (from info
@@ -158,6 +159,7 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
              {0.0, 0.0, 0.0}}}; // initialize angularAcceleration  (from data field)
 
         // create a dummy wds struct of m_linkVectorSize wds elements
+        // ------------------------------------------------------------------
         std::vector<wearable::msg::VirtualLinkKinSensor> dummy_wds;
         dummy_wds.resize(m_linkVectorSize, dummyElement_wds);
 
@@ -243,7 +245,57 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
     xsSensorFrame.sensorsData.reserve(inData.magnetometers.size());
     xsSensorFrame.sensorsData.reserve(inData.orientationSensors.size());
 
-    // TODO : check if vectors are empty
+    // Check if the sensor structs are empty.
+    // Assumption: if one is empty, all empty
+    // TODO: check if each single sensor struct is empty.
+    if (inData.freeBodyAccelerationSensors.empty()) {
+
+        // create a dummy element for each sensor
+        // --------------------------------------
+        // freeBodyAccelerationSensors: initialization to zero
+        wearable::msg::FreeBodyAccelerationSensor dummyElement_freeBodyAcc{
+            {"", // initialize name (from info field)}
+             wearable::msg::SensorType::FREE_BODY_ACCELERATION_SENSOR, // initialize type (from info
+                                                                       // field)
+             wearable::msg::SensorStatus::ERROR}, // initialize status (from info field)
+            {0.0, 0.0, 0.0}};
+
+        // magnetometers: initialization to zero
+        wearable::msg::Magnetometer dummyElement_magneto{
+            {"", // initialize name (from info field)}
+             wearable::msg::SensorType::MAGNETOMETER, // initialize type (from info
+                                                      // field)
+             wearable::msg::SensorStatus::ERROR}, // initialize status (from info field)
+            {0.0, 0.0, 0.0}};
+
+        // orientationSensors: initialization to zero
+        wearable::msg::OrientationSensor dummyElement_orientSens{
+            {"", // initialize name (from info field)}
+             wearable::msg::SensorType::ORIENTATION_SENSOR, // initialize type (from info
+                                                            // field)
+             wearable::msg::SensorStatus::ERROR}, // initialize status (from info field)
+            {0.0, {0.0, 0.0, 0.0}}};
+        ;
+        // create a dummy struct of m_linkVectorSize elements for each sensor
+        // ------------------------------------------------------------------
+        std::vector<wearable::msg::FreeBodyAccelerationSensor> dummy_freeBodyAcc;
+        dummy_freeBodyAcc.resize(m_sensorVectorSize, dummyElement_freeBodyAcc);
+
+        std::vector<wearable::msg::Magnetometer> dummy_magneto;
+        dummy_magneto.resize(m_sensorVectorSize, dummyElement_magneto);
+
+        std::vector<wearable::msg::OrientationSensor> dummy_orientSens;
+        dummy_orientSens.resize(m_sensorVectorSize, dummyElement_orientSens);
+
+        inputFreeBodyAccQty = std::move(dummy_freeBodyAcc);
+        inputMagnetometerQty = std::move(dummy_magneto);
+        inputOrientationSensQty = std::move(dummy_orientSens);
+    }
+    else {
+        inputFreeBodyAccQty = std::move(inData.freeBodyAccelerationSensors);
+        inputMagnetometerQty = std::move(inData.magnetometers);
+        inputOrientationSensQty = std::move(inData.orientationSensors);
+    }
 
     // Assumption:
     // freeBodyAccelerationSensors.size() == inData.magnetometers.size() ==
@@ -254,20 +306,20 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
         // TODO: check for each single field the possibility of a null vector.
 
         // Acceleration
-        xsSensorData.acceleration = {inData.freeBodyAccelerationSensors.at(i).data.x,
-                                     inData.freeBodyAccelerationSensors.at(i).data.y,
-                                     inData.freeBodyAccelerationSensors.at(i).data.z};
+        xsSensorData.acceleration = {inputFreeBodyAccQty.at(i).data.x,
+                                     inputFreeBodyAccQty.at(i).data.y,
+                                     inputFreeBodyAccQty.at(i).data.z};
         // Magnetometer
-        xsSensorData.magnetometer = {inData.magnetometers.at(i).data.x,
-                                     inData.magnetometers.at(i).data.y,
-                                     inData.magnetometers.at(i).data.z};
+        xsSensorData.magnetometer = {inputMagnetometerQty.at(i).data.x,
+                                     inputMagnetometerQty.at(i).data.y,
+                                     inputMagnetometerQty.at(i).data.z};
         // Orientation
-        xsSensorData.orientation = {inData.orientationSensors.at(i).data.w,
-                                    {inData.orientationSensors.at(i).data.imaginary.x,
-                                     inData.orientationSensors.at(i).data.imaginary.y,
-                                     inData.orientationSensors.at(i).data.imaginary.z}};
+        xsSensorData.orientation = {inputOrientationSensQty.at(i).data.w,
+                                    {inputOrientationSensQty.at(i).data.imaginary.x,
+                                     inputOrientationSensQty.at(i).data.imaginary.y,
+                                     inputOrientationSensQty.at(i).data.imaginary.z}};
         // Angular Velocity
-        // TODO: put angVel equal to 0.0!
+        xsSensorData.angularVelocity = {0.0, 0.0, 0.0};
 
         xsSensorFrame.sensorsData.push_back(xsSensorData);
     }
