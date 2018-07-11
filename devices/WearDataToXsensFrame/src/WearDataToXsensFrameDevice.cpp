@@ -11,12 +11,44 @@
 #include <yarp/os/LogStream.h>
 #include <yarp/os/Network.h>
 
+#include <map>
 #include <vector>
 
 using namespace yarp::dev;
 
 const std::string DeviceName = "WearDataToXsensFrameDevice";
 const std::string logPrefix = DeviceName + " : ";
+
+// ===========================
+// Create a map for the STATUS
+// ===========================
+
+// From  SensorStatus.h in ~WearData.thrift~ (both for VirtualLinkKinSensor and Accelerometer and
+// Magnetometer and OrientationSensor)
+// -----------------------------------------//
+// ERROR = 0,
+// OK = 1,
+// CALIBRATING = 2,
+// DATA_OVERFLOW = 3,
+// TIMEOUT = 4,
+// UNKNOWN = 5,
+// WAITING_FOR_FIRST_READ = 6
+// -----------------------------------------//
+// to SensorStatus.h in ~XsensFrame.thrift~
+// OK = 0,
+// ERROR = 1,
+// NO_DATA = 2,
+// TIMEOUT = 4
+// -----------------------------------------//
+
+const std::map<wearable::msg::SensorStatus, xsens::XsensStatus> wearableToXsensStatusMap{
+    {wearable::msg::SensorStatus::OK, xsens::XsensStatus::OK},
+    {wearable::msg::SensorStatus::ERROR, xsens::XsensStatus::ERROR},
+    {wearable::msg::SensorStatus::CALIBRATING, xsens::XsensStatus::NO_DATA},
+    {wearable::msg::SensorStatus::DATA_OVERFLOW, xsens::XsensStatus::ERROR},
+    {wearable::msg::SensorStatus::TIMEOUT, xsens::XsensStatus::TIMEOUT},
+    {wearable::msg::SensorStatus::UNKNOWN, xsens::XsensStatus::ERROR},
+    {wearable::msg::SensorStatus::WAITING_FOR_FIRST_READ, xsens::XsensStatus::NO_DATA}};
 
 // ======================
 // DeviceDriver interface
@@ -169,9 +201,13 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
         inputLinkQty = std::move(inData.virtualLinkKinSensors);
     }
 
+    std::vector<xsens::XsensStatus> statusLinkQtyVector;
+
     xsSegmentFrame.segmentsData.reserve(inputLinkQty.size());
+
     for (const auto& wds : inputLinkQty) {
         xsens::XsensSegmentData xsSegmentData;
+        xsens::XsensStatus tmpStatusLinkQty;
 
         // TODO: check for each single field the possibility of a null vector.
 
@@ -198,6 +234,32 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
                                              wds.data.angularAcceleration.z};
 
         xsSegmentFrame.segmentsData.push_back(xsSegmentData);
+
+        tmpStatusLinkQty = wearableToXsensStatusMap.at(wds.info.status);
+        statusLinkQtyVector.push_back(tmpStatusLinkQty);
+    }
+
+    // ----------------------------------------
+    // Unify all link status in a single status
+    // ----------------------------------------
+    if (std::find(statusLinkQtyVector.begin(), statusLinkQtyVector.end(), xsens::XsensStatus::ERROR)
+        != statusLinkQtyVector.end()) {
+        xsSegmentFrame.status = xsens::XsensStatus::ERROR;
+    }
+    else if (std::find(statusLinkQtyVector.begin(),
+                       statusLinkQtyVector.end(),
+                       xsens::XsensStatus::TIMEOUT)
+             != statusLinkQtyVector.end()) {
+        xsSegmentFrame.status = xsens::XsensStatus::TIMEOUT;
+    }
+    else if (std::find(statusLinkQtyVector.begin(),
+                       statusLinkQtyVector.end(),
+                       xsens::XsensStatus::NO_DATA)
+             != statusLinkQtyVector.end()) {
+        xsSegmentFrame.status = xsens::XsensStatus::NO_DATA;
+    }
+    else {
+        xsSegmentFrame.status = xsens::XsensStatus::OK;
     }
 
     // Sensors Quantities
@@ -229,8 +291,8 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
     //        4:  Quaternion orientation;      //
     //    }                                    //
     // --------------------------------------- //
-    // Note that the angularVelocity is not provided anymore as a sensor. We decided to provide this
-    // field as a 0.0 field.
+    // Note that the angularVelocity is not provided anymore as a sensor. We decided to provide
+    // this field as a 0.0 field.
 
     xsens::XsensSensorsFrame xsSensorFrame;
     std::vector<wearable::msg::FreeBodyAccelerationSensor> inputFreeBodyAccQty;
@@ -297,11 +359,14 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
         inputOrientationSensQty = std::move(inData.orientationSensors);
     }
 
+    std::vector<xsens::XsensStatus> statusSensQtyVector;
+
     // Assumption:
     // freeBodyAccelerationSensors.size() == inData.magnetometers.size() ==
     // inData.orientationSensors.size()
     for (unsigned long i = 0; i < inData.freeBodyAccelerationSensors.size(); ++i) {
         xsens::XsensSensorData xsSensorData;
+        xsens::XsensStatus tmpStatusSensQty;
 
         // TODO: check for each single field the possibility of a null vector.
 
@@ -309,21 +374,53 @@ void WearDataToXsensFrameDevice::onRead(wearable::msg::WearData& inData)
         xsSensorData.acceleration = {inputFreeBodyAccQty.at(i).data.x,
                                      inputFreeBodyAccQty.at(i).data.y,
                                      inputFreeBodyAccQty.at(i).data.z};
+
+        tmpStatusSensQty = wearableToXsensStatusMap.at(inputFreeBodyAccQty.at(i).info.status);
+        statusSensQtyVector.push_back(tmpStatusSensQty);
+
         // Magnetometer
         xsSensorData.magnetometer = {inputMagnetometerQty.at(i).data.x,
                                      inputMagnetometerQty.at(i).data.y,
                                      inputMagnetometerQty.at(i).data.z};
+
+        tmpStatusSensQty = wearableToXsensStatusMap.at(inputMagnetometerQty.at(i).info.status);
+        statusSensQtyVector.push_back(tmpStatusSensQty);
+
         // Orientation
         xsSensorData.orientation = {inputOrientationSensQty.at(i).data.w,
                                     {inputOrientationSensQty.at(i).data.imaginary.x,
                                      inputOrientationSensQty.at(i).data.imaginary.y,
                                      inputOrientationSensQty.at(i).data.imaginary.z}};
+
+        tmpStatusSensQty = wearableToXsensStatusMap.at(inputOrientationSensQty.at(i).info.status);
+        statusSensQtyVector.push_back(tmpStatusSensQty);
+
         // Angular Velocity
         xsSensorData.angularVelocity = {0.0, 0.0, 0.0};
 
         xsSensorFrame.sensorsData.push_back(xsSensorData);
     }
-}
 
-// TODO: handle the status! From the ~WearData.thrift~, the STATUS exists per each sensor, in
-// the ~XsensFrame.thrift~ there is a STATUS for the whole Xsens suit.  Define a proper mapping.
+    // ------------------------------------------
+    // Unify all sensor status in a single status
+    // ------------------------------------------
+    if (std::find(statusSensQtyVector.begin(), statusSensQtyVector.end(), xsens::XsensStatus::ERROR)
+        != statusSensQtyVector.end()) {
+        xsSensorFrame.status = xsens::XsensStatus::ERROR;
+    }
+    else if (std::find(statusSensQtyVector.begin(),
+                       statusSensQtyVector.end(),
+                       xsens::XsensStatus::TIMEOUT)
+             != statusSensQtyVector.end()) {
+        xsSensorFrame.status = xsens::XsensStatus::TIMEOUT;
+    }
+    else if (std::find(statusSensQtyVector.begin(),
+                       statusSensQtyVector.end(),
+                       xsens::XsensStatus::NO_DATA)
+             != statusSensQtyVector.end()) {
+        xsSensorFrame.status = xsens::XsensStatus::NO_DATA;
+    }
+    else {
+        xsSensorFrame.status = xsens::XsensStatus::OK;
+    }
+}
