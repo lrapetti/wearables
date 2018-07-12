@@ -1,0 +1,13 @@
+##DEVICE SPECIFIC PARAMETERS 
+
+<device type="WearDataToXsensFrameDevice" name="WearDataToXsensFrameDevice">
+    <!-- Remote port -->
+    <param name="remotePort"> /xsensSuit/wearData:o </param>
+    <!-- Local ports -->
+    <param name="input_localPort"> /xsensSuitData:i </param>
+    <param name="output_localPort1"> /xsens/frames:o </param>
+    <param name="output_localPort2"> /xsens/imu_frames:o </param>
+    <!-- Empty default vector size -->
+    <param name="linkVector_size"> 23 </param>
+    <param name="sensorVector_size"> 17 </param>
+</device>
