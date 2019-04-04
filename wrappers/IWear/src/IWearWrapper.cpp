@@ -379,10 +379,10 @@ void IWearWrapper::run()
     }
     {
         for (const auto& sensor : pImpl->virtualJointKinSensors) {
-            double jointAngle;
+            double jointPos;
             double jointVel;
             double jointAcc;
-            if (!sensor->getJointAngleAsRad(jointAngle) || !sensor->getJointVelocity(jointVel)
+            if (!sensor->getJointPosition(jointPos) || !sensor->getJointVelocity(jointVel)
                 || !sensor->getJointAcceleration(jointAcc)) {
                 yError() << logPrefix << "[VirtualJointKinSensors] "
                          << "Failed to read data";
@@ -391,7 +391,7 @@ void IWearWrapper::run()
             }
             data.virtualJointKinSensors[sensor->getSensorName()] = {
                 generateSensorStatus(sensor.get()),
-                {jointAngle,
+                {jointPos,
                 jointVel,
                 jointAcc}};
         }
