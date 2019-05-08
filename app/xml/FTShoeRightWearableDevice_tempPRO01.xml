@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<robot name="ftshoes_ianalogsensor_to_iwear" build=0 portprefix="">
+
+<!-- First level devices section - force-torque-sensors -->
+<device type="canBusAnalogSensor" name="ftShoe_Right_Front">
+    <param name="canbusDevice"> "ecan" </param>
+    <param name="physDevice"> "ecan" </param>
+    <param name="canDeviceNum"> 0 </param>
+    <param name="canAddress"> 0x03 </param>
+    <param name="format"> 16 </param>
+    <param name="channels"> 6 </param>
+    <param name="period"> 5 </param>
+    <param name="useCalibration"> 1 </param>
+    <param name="diagnostic"> 1 </param>
+</device>
+<device type="canBusAnalogSensor" name="ftShoe_Right_Rear">
+    <param name="canbusDevice"> "ecan" </param>
+    <param name="physDevice"> "ecan" </param>
+    <param name="canDeviceNum"> 0 </param>
+    <param name="canAddress"> 0x04 </param>
+    <param name="format"> 16 </param>
+    <param name="channels"> 6 </param>
+    <param name="period"> 5 </param>
+    <param name="useCalibration"> 1 </param>
+    <param name="diagnostic"> 1 </param>
+</device>
+
+<!-- Second level devices section - ftshoe -->
+<device name="ftShoe_r" type="ftshoe">
+    <param name="period"> 10 </param>
+    <param name="name"> /ft/ftShoe_Right/analog:o </param>
+    <!------------------Transformation from Front to Rear---------------------->
+    <!--TRANSLATION-->
+    <!--fts_offset: the origin of Front ft SoR expressed in Rear ft SoR [m]-->
+    <param name="fts_offset">(0.15, 0.0, 0.0)</param>
+    <!--ROTATION-->
+    <!--fts_orientation_R: rotation matrix to transform values (expressed w.r.t. the Front ft SoR) into Rear ft SoR, (i.e., Rear_R_Front)-->
+    <param name="fts_orientation_R">(  1.0,  0.0, 0.0,
+                                       0.0,  1.0, 0.0,
+                                       0.0,  0.0, 1.0
+                                    )
+    <!------------Transformation from Rear to final ftShoe Output-------------->
+    </param>
+    <!--ROTATION-->
+    <!--rear_fts_to_out_R: rotation matrix to transform values (expressed w.r.t. the Rear ft SoR) into the final output SoR-->
+    <!--The final output SoR is located at the origin of the Rear ft SoR (no translation) with the following orientation:-->
+    <!--Z pointing up, X pointing forward (along the line that connects the origins of Rear ft SoR and the Front ft SoR) and Y following right-hand convention-->
+    <param name="rear_fts_to_out_R">(
+                                       1.0,  0.0,  0.0,
+                                       0.0, -1.0,  0.0,
+                                       0.0,  0.0, -1.0
+                                    )
+    </param>
+    <!--inSitu calibration matrices.-->
+    <param name="useInSituCalibration"> true </param>
+    <!--This matrices applies to the calibrated fts signals, than be sure to set to 1 the useCalibration parameter of both devices-->
+    <group name="inSituMatrices">
+        <param name="front_fts"> (
+                                   0.880400893166150   0.057191698043658  -0.001767405439998   0.134628265369671  -1.676695549893091   0.712406214087048
+                                   0.058786507320560   0.691244019159942  -0.024872640965753  -0.231888467980949   0.281430550867337  -0.717802907583823
+                                  -0.098049488660149  -0.108138905874022   1.029299923149693   0.893028113506702   0.423930657118997  -1.201290585916358
+                                  -0.001414593331550   0.029289378764430   0.003819836478729   1.014551959637692  -0.019956113747709   0.134682985596580
+                                  -0.033652670225293  -0.014861734033149  -0.000793440207254   0.062470562872279   1.090272632403099  -0.064565894160127
+                                  -0.003235199977268   0.016197959883482  -0.002474205419111  -0.046487598151828   0.002614083045477   1.048706809368756
+                                 )
+        </param>
+        <param name="rear_fts"> (
+                                   0.864470720905833  -0.039546937016998   0.044097808518071   0.290403119602568  -3.582497298947812  -1.831788174427993
+                                   0.066795567638058   1.004094629771326   0.009971387890822  -3.011967295116181  -0.569659014063713  -3.308596027363131
+                                  -0.004190096955849   0.041337729406938   1.006301722892171   0.032248727587567   0.128485218609086   0.529214253866954
+                                   0.000663416645465   0.036188320325342   0.001289647201845   0.854016540922766  -0.024201033672543  -0.061169618293289
+                                  -0.024737137025760  -0.003574883088976  -0.003110322098382   0.044796595995333   1.242425461275005  -0.029602146917891
+                                  -0.003795327729786  -0.003774953079977  -0.000816534062323  -0.006017602337179   0.030651875255918   1.008971764646507
+                                )
+        </param>
+    </group>
+    <action phase="startup" level="5" type="attach">
+        <paramlist name="networks">
+            <elem name="front_ft"> ftShoe_Right_Front </elem>
+            <elem name="rear_ft"> ftShoe_Right_Rear </elem>
+        </paramlist>
+    </action>
+    <action phase="shutdown" level="5" type="detach"/>
+</device>
+
+<!-- Analog wrappers sections, required to forward devices data on dedicated yarp ports -->
+<!-- Analog wrappers sections - ftshoe devices wrappers -->
+<device name="ftSensWrapper" type="analogServer">
+    <param name="period"> 10 </param>
+    <param name="name"> /ft/ftShoe_Right/analog:o </param>
+    <action phase="startup" level="5" type="attach">
+        <paramlist name="networks">
+            <elem name="FirstStrain"> ftShoe_r </elem>
+        </paramlist>
+    </action>
+    <action phase="shutdown" level="5" type="detach"/>
+</device>
+
+<!-- Analog wrappers sections - ftSensors devices wrappers -->
+<device name="ftSensWrapper" type="analogServer">
+    <param name="period"> 10 </param>
+    <param name="name"> /ft/ftShoe_Right_Front/analog:o </param>
+    <action phase="startup" level="5" type="attach">
+        <paramlist name="networks">
+            <elem name="FirstStrain"> ftShoe_Right_Front </elem>
+        </paramlist>
+    </action>
+    <action phase="shutdown" level="5" type="detach"/>
+</device>
+<device name="ftSensWrapper" type="analogServer">
+    <param name="period"> 10 </param>
+    <param name="name"> /ft/ftShoe_Right_Rear/analog:o </param>
+    <action phase="startup" level="5" type="attach">
+        <paramlist name="networks">
+            <elem name="FirstStrain"> ftShoe_Right_Rear </elem>
+        </paramlist>
+    </action>
+    <action phase="shutdown" level="5" type="detach"/>
+</device>
+
+<device type="ianalogsensor_to_iwear" name="FTShoeRightIAnalogSensorToIWear">
+    <param name="sensorName">FTShoeRightFTSensors</param>
+    <param name="wearableName">FTShoeRight</param>
+    <param name="numberOfChannels">6</param>
+    <param name="channelOffset">0</param>
+    <param name="wearableSensorType">ForceTorque6DSensor</param>
+    <param name="getGroundReactionFT">true</param>
+    <action phase="startup" level="5" type="attach">
+        <paramlist name="networks">
+            <elem name="FTShoeRightIAnalogSensorToIWearLabel">ftShoe_r</elem>
+        </paramlist>
+    </action>
+    <action phase="shutdown" level="5" type="detach"/>
+</device>
+
+<device type="iwear_wrapper" name="FTShoeRightIWearWrapper">
+    <param name="period">0.01</param>
+    <param name="dataPortName">/FTShoeRight/WearableData/data:o</param>
+    <param name="rpcPortName">/FTShoeRight/WearableData/metadataRpc:o</param>
+    <action phase="startup" level="5" type="attach">
+        <paramlist name="networks">
+            <elem name="FTShoeRightIWearWrapperLabel">FTShoeRightIAnalogSensorToIWear</elem>
+        </paramlist>
+    </action>
+    <action phase="shutdown" level="5" type="detach"/>
+</device>
+
+</robot>
